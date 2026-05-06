@@ -37,6 +37,24 @@ router.get("/notifications", authenticateUser, async (req, res) => {
   res.status(200).json({ data: notifications, unreadCount });
 });
 
+router.put("/notifications/read-all", authenticateUser, async (req, res) => {
+  await Notification.updateMany(
+    { recipient: req.user._id, readAt: { $exists: false } },
+    { $set: { readAt: new Date() } }
+  );
+  res.status(200).json({ message: "All notifications marked as read" });
+});
+
+router.put("/notifications/:id/read", authenticateUser, async (req, res) => {
+  const notification = await Notification.findOneAndUpdate(
+    { _id: req.params.id, recipient: req.user._id },
+    { $set: { readAt: new Date() } },
+    { new: true }
+  );
+  if (!notification) return res.status(404).json({ message: "Notification not found" });
+  res.status(200).json({ data: notification });
+});
+
 router.put("/profile-picture", authenticateUser, async (req, res) => {
   const { profilePicture } = req.body;
   if (!profilePicture) return res.status(400).json({ message: "Profile picture is required" });
@@ -44,14 +62,14 @@ router.put("/profile-picture", authenticateUser, async (req, res) => {
   await req.user.save();
   res.status(200).json({ message: "Profile picture updated successfully", user: req.user.toSafeObject() });
 });
-
 router.get("/profile", authenticateUser, getUserProfile);
 router.put(
   "/profile",
   authenticateUser,
   validateRequest({
     body: z.object({
-      name: z.string(),
+      name: z.string().optional(),
+      fullName: z.string().optional(),
       profilePicture: z.string().optional(),
     }),
   }),

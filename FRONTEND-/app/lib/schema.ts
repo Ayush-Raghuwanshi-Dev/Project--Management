@@ -40,6 +40,7 @@ export const workspaceSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
   color: z.string().min(3, "Color must be at least 3 characters"),
   description: z.string().optional(),
+  type: z.string().min(1, "Workspace type is required").optional(),
 });
 
 export const projectSchema = z.object({
@@ -85,4 +86,6 @@ export const inviteMemberSchema = z.object({
     .string()
     .min(1, "Message is required")
     .refine((value) => value.split(/\s+/).filter(Boolean).length <= 250, "Message must be under 250 words"),
+  pdfUrl: z.string().optional(),
+  imageUrl: z.string().optional(),
 });

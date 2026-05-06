@@ -20,6 +20,10 @@ export default [
       "routes/dashboard/workspaces/workspace-details.tsx"
     ),
     route(
+      "workspaces/:workspaceId/activity",
+      "routes/dashboard/workspaces/workspace-activity.tsx"
+    ),
+    route(
       "workspaces/:workspaceId/projects/:projectId",
       "routes/dashboard/project/project.details.tsx"
     ),
@@ -27,9 +31,14 @@ export default [
       "workspaces/:workspaceId/projects/:projectId/tasks/:taskId",
       "routes/dashboard/task/task-details.tsx"
     ),
+    route(
+      "workspaces/:workspaceId/task/:taskId",
+      "routes/dashboard/task/task-share.tsx"
+    ),
     route("notifications", "routes/dashboard/notifications.tsx"),
     route("my-tasks", "routes/dashboard/my-tasks.tsx"),
     route("members", "routes/dashboard/members.tsx"),
+    route("meeting", "routes/dashboard/meeting.tsx"),
   ]),
 
   route(

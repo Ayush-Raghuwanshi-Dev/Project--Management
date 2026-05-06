@@ -11,6 +11,11 @@ const userSchema = new Schema(
       trim: true,
       default: "",
     },
+    fullName: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     username: {
       type: String,
       required: true,

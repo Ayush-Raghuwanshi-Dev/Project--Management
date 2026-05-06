@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   ListCheck,
   LogOut,
+  Video,
   Users,
   Wrench,
 } from "lucide-react";
@@ -45,6 +46,11 @@ export const SidebarComponent = ({
       href: `/members`,
       icon: Users,
     },
+    {
+      title: "Meeting",
+      href: "/meeting",
+      icon: Video,
+    },
   ];
 
   return (
@@ -60,7 +66,7 @@ export const SidebarComponent = ({
             <div className="flex items-center gap-2">
               <Wrench className="size-6 text-blue-600" />
               <span className="font-semibold text-lg hidden md:block">
-                TaskHuh
+                TaskHub
               </span>
             </div>
           )}

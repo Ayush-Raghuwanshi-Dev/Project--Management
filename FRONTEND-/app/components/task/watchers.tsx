@@ -1,6 +1,8 @@
 import type { User } from "@/types";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
+const displayName = (user: User) => `@${user.username}`;
+
 export const Watchers = ({ watchers }: { watchers: User[] }) => {
   return (
     <div className="bg-card rounded-lg p-6 shadow-sm mb-6">
@@ -12,10 +14,10 @@ export const Watchers = ({ watchers }: { watchers: User[] }) => {
             <div key={watcher._id} className="flex items-center gap-2">
               <Avatar className="size-6">
                 <AvatarImage src={watcher.profilePicture} />
-                <AvatarFallback>{watcher.name.charAt(0)}</AvatarFallback>
+                <AvatarFallback>{(watcher.name || watcher.username || "U").charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
 
-              <p className="text-sm text-muted-foreground">{watcher.name}</p>
+              <p className="text-sm text-muted-foreground">{displayName(watcher)}</p>
             </div>
           ))
         ) : (

@@ -16,12 +16,14 @@ import {
   useAchievedTaskMutation,
   useTaskByIdQuery,
   useWatchTaskMutation,
+  useDeleteTaskMutation,
 } from "@/hooks/use-task";
 import { useAuth } from "@/provider/auth-context";
 import type { Project, Task } from "@/types";
 import { format, formatDistanceToNow } from "date-fns";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Paperclip, FileText, Image as ImageIcon, Download } from "lucide-react";
 import { useNavigate, useParams } from "react-router";
+import { useGetWorkspaceDetailsQuery } from "@/hooks/use-workspace";
 import { toast } from "sonner";
 
 const TaskDetails = () => {
@@ -43,8 +45,10 @@ const TaskDetails = () => {
   const { mutate: watchTask, isPending: isWatching } = useWatchTaskMutation();
   const { mutate: achievedTask, isPending: isAchieved } =
     useAchievedTaskMutation();
+  const { mutate: deleteTask, isPending: isDeleting } = useDeleteTaskMutation();
+  const { data: workspaceData, isLoading: isLoadingWorkspace } = useGetWorkspaceDetailsQuery(workspaceId!);
 
-  if (isLoading) {
+  if (isLoading || isLoadingWorkspace) {
     return (
       <div>
         <Loader />
@@ -69,6 +73,14 @@ const TaskDetails = () => {
 
   const members = task?.assignees || [];
 
+  const currentUserRole = (workspaceData as any)?.data?.members?.find(
+    (m: any) => m.user?._id === user?._id || m.user === user?._id
+  )?.role;
+
+  const isAdmin = currentUserRole === "admin";
+  const isMember = currentUserRole === "member";
+  const canEditStatus = isAdmin || isMember;
+
   const handleWatchTask = () => {
     watchTask(
       { taskId: task._id },
@@ -92,6 +104,22 @@ const TaskDetails = () => {
         },
         onError: () => {
           toast.error("Failed to achieve task");
+        },
+      }
+    );
+  };
+
+  const handleDeleteTask = () => {
+    if (!window.confirm("Are you sure you want to delete this task?")) return;
+    deleteTask(
+      { taskId: task._id, projectId: task.project as any },
+      {
+        onSuccess: () => {
+          toast.success("Task deleted successfully");
+          goBack();
+        },
+        onError: (error: any) => {
+          toast.error(error.response?.data?.message || "Failed to delete task");
         },
       }
     );
@@ -145,14 +173,14 @@ const TaskDetails = () => {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <div className="bg-card rounded-lg p-6 shadow-sm mb-6">
             <div className="flex flex-col md:flex-row justify-between items-start mb-4">
               <div>
                 <TaskBadge priority={task.priority} className="mb-2" />
 
-                <TaskTitle title={task.title} taskId={task._id} />
+                <TaskTitle title={task.title} taskId={task._id} isAdmin={isAdmin} />
 
                 <div className="text-sm md:text-base text-muted-foreground">
                   Created at:{" "}
@@ -163,16 +191,19 @@ const TaskDetails = () => {
               </div>
 
               <div className="flex items-center gap-2 mt-4 md:mt-0">
-                <TaskStatusSelector status={task.status} taskId={task._id} />
+                <TaskStatusSelector status={task.status} taskId={task._id} disabled={!canEditStatus} />
 
-                <Button
-                  variant={"destructive"}
-                  size="sm"
-                  onClick={() => {}}
-                  className="hidden md:block"
-                >
-                  Delete Task
-                </Button>
+                {isAdmin && (
+                  <Button
+                    variant={"destructive"}
+                    size="sm"
+                    disabled={isDeleting}
+                    onClick={handleDeleteTask}
+                    className="hidden md:block"
+                  >
+                    {isDeleting ? "Deleting..." : "Delete Task"}
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -184,6 +215,7 @@ const TaskDetails = () => {
               <TaskDescription
                 description={task.description || ""}
                 taskId={task._id}
+                isAdmin={isAdmin}
               />
             </div>
 
@@ -191,11 +223,44 @@ const TaskDetails = () => {
               task={task}
               assignees={task.assignees}
               projectMembers={project.members as any}
+              isAdmin={isAdmin}
             />
 
-            <TaskPrioritySelector priority={task.priority} taskId={task._id} />
+            <TaskPrioritySelector priority={task.priority} taskId={task._id} isAdmin={isAdmin} />
 
-            <SubTasksDetails subTasks={task.subtasks || []} taskId={task._id} />
+            <SubTasksDetails subTasks={task.subtasks || []} taskId={task._id} isAdmin={isAdmin} />
+
+            {/* Attachments */}
+            {task.attachments && task.attachments.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                  <Paperclip className="size-4" /> Attachments
+                </h3>
+                <div className="flex flex-col gap-2">
+                  {task.attachments.map((att) => (
+                    <a
+                      key={att._id}
+                      href={att.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 rounded-md border bg-muted/40 px-3 py-2 text-sm hover:bg-muted transition-colors"
+                    >
+                      {att.fileType === "application/pdf" ? (
+                        <FileText className="size-4 text-red-500 shrink-0" />
+                      ) : (
+                        <ImageIcon className="size-4 text-blue-500 shrink-0" />
+                      )}
+                      <span className="truncate flex-1">{att.fileName}</span>
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        {att.fileType === "application/pdf" ? "PDF" : "Image"}
+                        {att.fileSize ? ` · ${(att.fileSize / 1024).toFixed(0)} KB` : ""}
+                      </span>
+                      <Download className="size-4 text-muted-foreground shrink-0" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <CommentSection taskId={task._id} members={project.members as any} />

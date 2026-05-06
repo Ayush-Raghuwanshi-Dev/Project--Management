@@ -4,6 +4,7 @@ export interface User {
   email: string;
   username: string;
   name: string;
+  fullName?: string;
   createdAt: Date;
   isEmailVerified: boolean;
   updatedAt: Date;
@@ -19,10 +20,11 @@ export interface Workspace {
   description?: string;
   owner: User | string;
   color: string;
+  type?: string;
   activityLog?: WorkspaceActivity[];
   members: {
     user: User;
-    role: "admin" | "member";
+    role: "admin" | "member" | "viewer";
     joinedAt: Date;
   }[];
   createdAt: Date;
@@ -54,7 +56,7 @@ export interface Project {
   updatedAt: Date;
   isArchived: boolean;
 }
-export type TaskStatus = "To Do" | "In Progress" | "Done";
+export type TaskStatus = "To Do" | "In Progress" | "Review" | "Done";
 export type TaskPriority = "High" | "Medium" | "Low";
 export enum ProjectMemberRole {
   MANAGER = "manager",
@@ -101,7 +103,7 @@ export interface Attachment {
 export interface MemberProps {
   _id: string;
   user: User;
-  role: "admin" | "member";
+  role: "admin" | "member" | "viewer";
   joinedAt: Date;
 }
 
@@ -134,6 +136,12 @@ export type ActionType =
   | "added_member"
   | "removed_member"
   | "joined_workspace"
+  | "left_workspace"
+  | "invite_received"
+  | "invite_accepted"
+  | "invite_rejected"
+  | "assigned_task"
+  | "deleted_task"
   | "added_attachment";
 
 export interface ActivityLog {
@@ -142,6 +150,7 @@ export interface ActivityLog {
   action: ActionType;
   resourceType: ResourceType;
   resourceId: string;
+  workspaceId?: string;
   details: any;
   createdAt: Date;
 }

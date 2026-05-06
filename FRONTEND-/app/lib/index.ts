@@ -27,7 +27,7 @@ export const getTaskStatusColor = (status: ProjectStatus) => {
   }
 };
 
-export const getProjectProgress = (tasks: { status: TaskStatus }[]) => {
+export const getProjectProgress = (tasks: { status: TaskStatus }[] = []) => {
   const totalTasks = tasks.length;
 
   const completedTasks = tasks.filter((task) => task?.status === "Done").length;

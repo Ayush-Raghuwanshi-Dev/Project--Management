@@ -12,8 +12,8 @@ import { getProjectProgress } from "@/lib";
 import { cn } from "@/lib/utils";
 import type { Project, Task, TaskStatus } from "@/types";
 import { format } from "date-fns";
-import { AlertCircle, Calendar, CheckCircle, Clock } from "lucide-react";
-import { useState } from "react";
+import { Calendar, CheckCircle, Clock, Filter, AlertCircle } from "lucide-react";
+import { useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router";
 
 const ProjectDetails = () => {
@@ -25,6 +25,8 @@ const ProjectDetails = () => {
 
   const [isCreateTask, setIsCreateTask] = useState(false);
   const [taskFilter, setTaskFilter] = useState<TaskStatus | "All">("All");
+  const [priorityFilter, setPriorityFilter] = useState<string>("All");
+  const [assigneeFilter, setAssigneeFilter] = useState<string>("All");
 
   const { data, isLoading } = UseProjectQuery(projectId!) as {
     data: {
@@ -34,14 +36,34 @@ const ProjectDetails = () => {
     isLoading: boolean;
   };
 
-  if (isLoading)
+  const tasks = data?.tasks || [];
+  const project = data?.project;
+
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((task) => {
+      if (priorityFilter !== "All" && task.priority !== priorityFilter) return false;
+      if (assigneeFilter !== "All" && !task.assignees.some((a) => a._id === assigneeFilter)) return false;
+      return true;
+    });
+  }, [tasks, priorityFilter, assigneeFilter]);
+
+  const uniqueAssignees = useMemo(() => {
+    const assigneesMap = new Map();
+    tasks.forEach(task => {
+      task.assignees?.forEach(a => {
+        assigneesMap.set(a._id, a);
+      });
+    });
+    return Array.from(assigneesMap.values());
+  }, [tasks]);
+
+  if (isLoading || !project)
     return (
       <div>
         <Loader />
       </div>
     );
 
-  const { project, tasks } = data;
   const projectProgress = getProjectProgress(tasks);
 
   const handleTaskClick = (taskId: string) => {
@@ -99,40 +121,54 @@ const ProjectDetails = () => {
               </TabsTrigger>
             </TabsList>
 
-            <div className="flex items-center text-sm">
-              <span className="text-muted-foreground">Status:</span>
-              <div>
-                <Badge variant="outline" className="bg-background">
-                  {tasks.filter((task) => task.status === "To Do").length} To Do
-                </Badge>
-                <Badge variant="outline" className="bg-background">
-                  {tasks.filter((task) => task.status === "In Progress").length}{" "}
-                  In Progress
-                </Badge>
-                <Badge variant="outline" className="bg-background">
-                  {tasks.filter((task) => task.status === "Done").length} Done
-                </Badge>
+            <div className="flex flex-col sm:flex-row items-center text-sm gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground flex items-center gap-1"><Filter className="size-3" /> Priority:</span>
+                <select
+                  className="bg-transparent border rounded p-1 text-xs"
+                  value={priorityFilter}
+                  onChange={(e) => setPriorityFilter(e.target.value)}
+                >
+                  <option value="All">All</option>
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground flex items-center gap-1"><Filter className="size-3" /> Assignee:</span>
+                <select
+                  className="bg-transparent border rounded p-1 text-xs max-w-[120px]"
+                  value={assigneeFilter}
+                  onChange={(e) => setAssigneeFilter(e.target.value)}
+                >
+                  <option value="All">All</option>
+                  {uniqueAssignees.map(a => (
+                    <option key={a._id} value={a._id}>{a.name || a.username}</option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>
 
           <TabsContent value="all" className="m-0">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <TaskColumn
                 title="To Do"
-                tasks={tasks.filter((task) => task.status === "To Do")}
+                tasks={filteredTasks.filter((task) => task.status === "To Do")}
                 onTaskClick={handleTaskClick}
               />
 
               <TaskColumn
                 title="In Progress"
-                tasks={tasks.filter((task) => task.status === "In Progress")}
+                tasks={filteredTasks.filter((task) => task.status === "In Progress")}
                 onTaskClick={handleTaskClick}
               />
 
               <TaskColumn
                 title="Done"
-                tasks={tasks.filter((task) => task.status === "Done")}
+                tasks={filteredTasks.filter((task) => task.status === "Done")}
                 onTaskClick={handleTaskClick}
               />
             </div>
@@ -142,7 +178,7 @@ const ProjectDetails = () => {
             <div className="grid md:grid-cols-1 gap-4">
               <TaskColumn
                 title="To Do"
-                tasks={tasks.filter((task) => task.status === "To Do")}
+                tasks={filteredTasks.filter((task) => task.status === "To Do")}
                 onTaskClick={handleTaskClick}
                 isFullWidth
               />
@@ -153,7 +189,7 @@ const ProjectDetails = () => {
             <div className="grid md:grid-cols-1 gap-4">
               <TaskColumn
                 title="In Progress"
-                tasks={tasks.filter((task) => task.status === "In Progress")}
+                tasks={filteredTasks.filter((task) => task.status === "In Progress")}
                 onTaskClick={handleTaskClick}
                 isFullWidth
               />
@@ -164,7 +200,7 @@ const ProjectDetails = () => {
             <div className="grid md:grid-cols-1 gap-4">
               <TaskColumn
                 title="Done"
-                tasks={tasks.filter((task) => task.status === "Done")}
+                tasks={filteredTasks.filter((task) => task.status === "Done")}
                 onTaskClick={handleTaskClick}
                 isFullWidth
               />

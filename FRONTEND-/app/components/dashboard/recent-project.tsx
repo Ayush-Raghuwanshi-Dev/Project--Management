@@ -22,14 +22,15 @@ export const RecentProjects = ({ data }: { data: Project[] }) => {
           </p>
         ) : (
           data.map((project) => {
-            const projectProgress = getProjectProgress(project.tasks);
+            const projectProgress = getProjectProgress(project.tasks || []);
+            const projectLink = workspaceId
+              ? `/workspaces/${workspaceId}/projects/${project._id}`
+              : "/workspaces";
 
             return (
               <div key={project._id} className="border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <Link
-                    to={`/workspaces${workspaceId}/projects/${project._id}`}
-                  >
+                  <Link to={projectLink}>
                     <h3 className="font-medium hover:text-primary transition-colors">
                       {project.title}
                     </h3>

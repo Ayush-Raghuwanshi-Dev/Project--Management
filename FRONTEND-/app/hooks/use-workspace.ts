@@ -78,3 +78,18 @@ export const useRemoveWorkspaceMemberMutation = () => {
       deleteData(`/workspaces/${data.workspaceId}/members/${data.memberId}`),
   });
 };
+
+export const useLeaveWorkspaceMutation = () => {
+  return useMutation({
+    mutationFn: (workspaceId: string) =>
+      postData(`/workspaces/${workspaceId}/leave`, {}),
+  });
+};
+
+export const useWorkspaceActivityQuery = (workspaceId?: string | null, page = 1, limit = 20) => {
+  return useQuery({
+    queryKey: ["workspace", workspaceId, "activity", page, limit],
+    queryFn: async () => fetchData(`/workspaces/${workspaceId}/activity?page=${page}&limit=${limit}`),
+    enabled: Boolean(workspaceId),
+  });
+};

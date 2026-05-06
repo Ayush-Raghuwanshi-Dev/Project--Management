@@ -33,12 +33,14 @@ const MyTasks = () => {
   const initialFilter = searchParams.get("filter") || "all";
   const initialSort = searchParams.get("sort") || "desc";
   const initialSearch = searchParams.get("search") || "";
+  const initialPage = parseInt(searchParams.get("page") || "1", 10);
 
   const [filter, setFilter] = useState<string>(initialFilter);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">(
     initialSort === "asc" ? "asc" : "desc"
   );
   const [search, setSearch] = useState<string>(initialSearch);
+  const [page, setPage] = useState<number>(initialPage);
 
   useEffect(() => {
     const params: Record<string, string> = {};
@@ -50,25 +52,31 @@ const MyTasks = () => {
     params.filter = filter;
     params.sort = sortDirection;
     params.search = search;
+    params.page = page.toString();
 
     setSearchParams(params, { replace: true });
-  }, [filter, sortDirection, search]);
+  }, [filter, sortDirection, search, page]);
 
   useEffect(() => {
     const urlFilter = searchParams.get("filter") || "all";
     const urlSort = searchParams.get("sort") || "desc";
     const urlSearch = searchParams.get("search") || "";
+    const urlPage = parseInt(searchParams.get("page") || "1", 10);
 
     if (urlFilter !== filter) setFilter(urlFilter);
     if (urlSort !== sortDirection)
       setSortDirection(urlSort === "asc" ? "asc" : "desc");
     if (urlSearch !== search) setSearch(urlSearch);
+    if (urlPage !== page) setPage(urlPage);
   }, [searchParams]);
 
-  const { data: myTasks, isLoading } = useGetMyTasksQuery() as {
-    data: Task[];
+  const { data: myTasksData, isLoading } = useGetMyTasksQuery(page, 20) as {
+    data: { data: Task[]; pagination: any };
     isLoading: boolean;
   };
+
+  const myTasks = myTasksData?.data || [];
+  const pagination = myTasksData?.pagination;
 
   const filteredTasks =
     myTasks?.length > 0
@@ -251,6 +259,30 @@ const MyTasks = () => {
                   </div>
                 )}
               </div>
+
+              {pagination && pagination.totalPages > 1 && (
+                <div className="flex items-center justify-center space-x-2 mt-4 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page <= 1}
+                    onClick={() => setPage(p => p - 1)}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Page {page} of {pagination.totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={page >= pagination.totalPages}
+                    onClick={() => setPage(p => p + 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

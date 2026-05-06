@@ -19,14 +19,17 @@ import {
   updateTaskStatus,
   updateTaskTitle,
   watchTask,
+  deleteTask,
 } from "../controllers/task.js";
 import authMiddleware from "../middleware/auth-middleware.js";
+import { requireWorkspaceRole } from "../middleware/role-middleware.js";
 
 const router = express.Router();
 
 router.post(
   "/:projectId/create-task",
   authMiddleware,
+  requireWorkspaceRole(["admin", "member"]),
   validateRequest({
     params: z.object({
       projectId: z.string(),
@@ -39,6 +42,7 @@ router.post(
 router.post(
   "/:taskId/add-subtask",
   authMiddleware,
+  requireWorkspaceRole(["admin", "member"]),
   validateRequest({
     params: z.object({ taskId: z.string() }),
     body: z.object({ title: z.string() }),
@@ -49,6 +53,7 @@ router.post(
 router.post(
   "/:taskId/add-comment",
   authMiddleware,
+  requireWorkspaceRole(["admin", "member"]),
   validateRequest({
     params: z.object({ taskId: z.string() }),
     body: z.object({ text: z.string() }),
@@ -59,6 +64,7 @@ router.post(
 router.post(
   "/:taskId/watch",
   authMiddleware,
+  requireWorkspaceRole(["admin", "member", "viewer"]),
   validateRequest({
     params: z.object({ taskId: z.string() }),
   }),
@@ -68,6 +74,7 @@ router.post(
 router.post(
   "/:taskId/achieved",
   authMiddleware,
+  requireWorkspaceRole(["admin", "member"]),
   validateRequest({
     params: z.object({ taskId: z.string() }),
   }),
@@ -77,6 +84,7 @@ router.post(
 router.put(
   "/:taskId/update-subtask/:subTaskId",
   authMiddleware,
+  requireWorkspaceRole(["admin", "member"]),
   validateRequest({
     params: z.object({ taskId: z.string(), subTaskId: z.string() }),
     body: z.object({ completed: z.boolean() }),
@@ -87,6 +95,7 @@ router.put(
 router.put(
   "/:taskId/title",
   authMiddleware,
+  requireWorkspaceRole(["admin", "member"]),
   validateRequest({
     params: z.object({ taskId: z.string() }),
     body: z.object({ title: z.string() }),
@@ -97,6 +106,7 @@ router.put(
 router.put(
   "/:taskId/description",
   authMiddleware,
+  requireWorkspaceRole(["admin", "member"]),
   validateRequest({
     params: z.object({ taskId: z.string() }),
     body: z.object({ description: z.string() }),
@@ -107,6 +117,7 @@ router.put(
 router.put(
   "/:taskId/status",
   authMiddleware,
+  requireWorkspaceRole(["admin", "member"]),
   validateRequest({
     params: z.object({ taskId: z.string() }),
     body: z.object({ status: z.string() }),
@@ -117,6 +128,7 @@ router.put(
 router.put(
   "/:taskId/assignees",
   authMiddleware,
+  requireWorkspaceRole(["admin", "member"]),
   validateRequest({
     params: z.object({ taskId: z.string() }),
     body: z.object({ assignees: z.array(z.string()) }),
@@ -129,6 +141,7 @@ router.get("/my-tasks", authMiddleware, getMyTasks);
 router.put(
   "/:taskId/priority",
   authMiddleware,
+  requireWorkspaceRole(["admin", "member"]),
   validateRequest({
     params: z.object({ taskId: z.string() }),
     body: z.object({ priority: z.string() }),
@@ -139,6 +152,7 @@ router.put(
 router.get(
   "/:taskId",
   authMiddleware,
+  requireWorkspaceRole(["admin", "member", "viewer"]),
   validateRequest({
     params: z.object({
       taskId: z.string(),
@@ -150,6 +164,7 @@ router.get(
 router.get(
   "/:resourceId/activity",
   authMiddleware,
+  requireWorkspaceRole(["admin", "member", "viewer"]),
   validateRequest({
     params: z.object({ resourceId: z.string() }),
   }),
@@ -159,9 +174,21 @@ router.get(
 router.get(
   "/:taskId/comments",
   authMiddleware,
+  requireWorkspaceRole(["admin", "member", "viewer"]),
   validateRequest({
     params: z.object({ taskId: z.string() }),
   }),
   getCommentsByTaskId
 );
+
+router.delete(
+  "/:taskId",
+  authMiddleware,
+  requireWorkspaceRole(["admin"]),
+  validateRequest({
+    params: z.object({ taskId: z.string() }),
+  }),
+  deleteTask
+);
+
 export default router;

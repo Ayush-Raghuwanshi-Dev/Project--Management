@@ -6,9 +6,11 @@ import { toast } from "sonner";
 export const TaskTitle = ({
   title,
   taskId,
+  isAdmin,
 }: {
   title: string;
   taskId: string;
+  isAdmin?: boolean;
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [newTitle, setNewTitle] = useState(title);
@@ -75,13 +77,15 @@ export const TaskTitle = ({
           disabled={isPending}
         />
       ) : (
-        <h2
-          className="flex-1 cursor-text text-xl font-semibold transition-colors hover:text-primary"
-          onClick={() => setIsEditing(true)}
-          title="Click to edit"
-        >
-          {title}
-        </h2>
+          <h2
+            className={`flex-1 text-xl font-semibold transition-colors ${isAdmin ? "cursor-text hover:text-primary" : ""}`}
+            onClick={() => {
+              if (isAdmin) setIsEditing(true);
+            }}
+            title={isAdmin ? "Click to edit" : undefined}
+          >
+            {title}
+          </h2>
       )}
     </div>
   );

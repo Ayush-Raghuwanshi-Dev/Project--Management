@@ -9,9 +9,10 @@ interface WorkspaceHeaderProps {
   members: {
     _id: string;
     user: User;
-    role: "admin" | "member";
+    role: "admin" | "member" | "viewer";
     joinedAt: Date;
   }[];
+  currentUserRole: "admin" | "member" | "viewer";
   onCreateProject: () => void;
   onInviteMember: () => void;
 }
@@ -19,9 +20,11 @@ interface WorkspaceHeaderProps {
 export const WorkspaceHeader = ({
   workspace,
   members,
+  currentUserRole,
   onCreateProject,
   onInviteMember,
 }: WorkspaceHeaderProps) => {
+  const isAdmin = currentUserRole === "admin";
   return (
     <div className="space-y-8">
       <div className="space-y-3">
@@ -37,14 +40,22 @@ export const WorkspaceHeader = ({
           </div>
 
           <div className="flex items-center gap-3 justify-between md:justify-start mb-4 md:mb-0">
-            <Button variant={"outline"} onClick={onInviteMember}>
-              <UserPlus className="size-4 mr-2" />
-              Invite
-            </Button>
-            <Button onClick={onCreateProject}>
-              <Plus className="size-4 mr-2" />
-              Create Project
-            </Button>
+            {isAdmin ? (
+              <>
+                <Button variant={"outline"} onClick={onInviteMember}>
+                  <UserPlus className="size-4 mr-2" />
+                  Invite
+                </Button>
+                <Button onClick={onCreateProject}>
+                  <Plus className="size-4 mr-2" />
+                  Create Project
+                </Button>
+              </>
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                You have read access to this workspace.
+              </div>
+            )}
           </div>
         </div>
 
@@ -64,13 +75,13 @@ export const WorkspaceHeader = ({
               <Avatar
                 key={member._id}
                 className="relative h-8 w-8 rounded-full  border-2 border-background overflow-hidden"
-                title={member.user.name}
+                title={member.user.name || member.user.username}
               >
                 <AvatarImage
                   src={member.user.profilePicture}
-                  alt={member.user.name}
+                  alt={member.user.name || member.user.username}
                 />
-                <AvatarFallback>{member.user.name.charAt(0)}</AvatarFallback>
+                <AvatarFallback>{(member.user.name || member.user.username || "U").charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
             ))}
           </div>

@@ -9,6 +9,11 @@ const workspaceModel = new Schema(
     },
     description: { type: String, trim: true },
     color: { type: String, default: "#FF5733" },
+    type: {
+      type: String,
+      trim: true,
+      default: "dev",
+    },
     owner: {
       type: Schema.Types.ObjectId,
       ref: "User",
@@ -19,7 +24,7 @@ const workspaceModel = new Schema(
         user: { type: Schema.Types.ObjectId, ref: "User" },
         role: {
           type: String,
-          enum: ["admin", "member"],
+          enum: ["admin", "member", "viewer"],
           default: "member",
         },
         joinedAt: { type: Date, default: Date.now },

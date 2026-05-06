@@ -20,7 +20,7 @@ export const WorkspaceAdminActions = ({
   workspaceId,
   members,
 }: {
-  currentUserRole: "admin" | "member";
+  currentUserRole: "admin" | "member" | "viewer";
   workspaceId: string;
   members: MemberProps[];
 }) => {
@@ -32,7 +32,9 @@ export const WorkspaceAdminActions = ({
     useRemoveWorkspaceMemberMutation();
 
   const removableMembers = useMemo(
-    () => members.filter((member) => member.role !== "admin"),
+    () => members
+      .filter((member) => member.role !== "admin")
+      .filter((m, i, self) => self.findIndex((t) => t.user._id === m.user._id) === i),
     [members]
   );
 
@@ -107,7 +109,7 @@ export const WorkspaceAdminActions = ({
                 ) : (
                   removableMembers.map((member) => (
                     <SelectItem key={member.user._id} value={member.user._id}>
-                      {member.user.name}
+                      @{member.user.username}
                     </SelectItem>
                   ))
                 )}

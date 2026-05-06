@@ -28,12 +28,16 @@ export const UpcomingTasks = ({ data }: { data: Task[] }) => {
             No upcoming tasks yet
           </p>
         ) : (
-          data.map((task) => (
-            <Link
-              to={`/workspaces${workspaceId}/projects/${task.project}/tasks/${task._id}`}
-              key={task._id}
-              className="flex items-start space-x-3 border-b pb-3 last:border-0"
-            >
+          data.map((task) => {
+            const taskLink = workspaceId
+              ? `/workspaces/${workspaceId}/projects/${task.project}/tasks/${task._id}`
+              : "/workspaces";
+            return (
+              <Link
+                to={taskLink}
+                key={task._id}
+                className="flex items-start space-x-3 border-b pb-3 last:border-0"
+              >
               <div
                 className={cn(
                   "mt-0.5 rounded-full p-1",
@@ -63,8 +67,9 @@ export const UpcomingTasks = ({ data }: { data: Task[] }) => {
                   )}
                 </div>
               </div>
-            </Link>
-          ))
+              </Link>
+            );
+          })
         )}
       </CardContent>
     </Card>

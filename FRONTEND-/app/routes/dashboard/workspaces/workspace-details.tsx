@@ -8,8 +8,9 @@ import { useGetWorkspaceQuery } from "@/hooks/use-workspace";
 import { useAuth } from "@/provider/auth-context";
 import type { Project, Workspace } from "@/types";
 import { useState } from "react";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import { WorkspaceAdminActions } from "@/components/workspace/workspace-admin-actions";
+import { Button } from "@/components/ui/button";
 
 const WorkspaceDetails = () => {
   const { user } = useAuth();
@@ -47,6 +48,7 @@ const WorkspaceDetails = () => {
       <WorkspaceHeader
         workspace={data.workspace}
         members={data?.workspace?.members as any}
+        currentUserRole={currentUserRole as any}
         onCreateProject={() => setIsCreateProject(true)}
         onInviteMember={() => setIsInviteMember(true)}
       />
@@ -65,6 +67,11 @@ const WorkspaceDetails = () => {
             members={data.workspace.members as any}
           />
           <RecentActivity activityLog={data.workspace.activityLog || []} />
+            {currentUserRole === "admin" && (
+              <Button variant="outline" asChild className="w-full">
+                <Link to={`/workspaces/${workspaceId}/activity`}>View all activity logs</Link>
+              </Button>
+            )}
         </div>
       </div>
 

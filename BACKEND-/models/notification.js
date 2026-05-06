@@ -11,7 +11,10 @@ const notificationSchema = new mongoose.Schema(
       default: "general",
     },
     message: { type: String, required: true, maxlength: 2000 },
+    // Used for invite responses (accept/reject feedback).
     feedback: { type: String, maxlength: 1000 },
+    pdfUrl: { type: String },
+    imageUrl: { type: String },
     status: {
       type: String,
       enum: ["pending", "accepted", "rejected", "info"],

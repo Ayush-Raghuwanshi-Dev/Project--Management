@@ -63,13 +63,13 @@ export const CommentSection = ({
             <div key={comment._id} className="flex gap-4 py-2">
               <Avatar className="size-8">
                 <AvatarImage src={comment.author.profilePicture} />
-                <AvatarFallback>{comment.author.name.charAt(0)}</AvatarFallback>
+                <AvatarFallback>{(comment.author.name || comment.author.username || "U").charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
 
               <div className="flex-1">
                 <div className="flex justify-between items-center mb-1">
                   <span className="font-medium text-sm">
-                    {comment.author.name}
+                    @{comment.author.username}
                   </span>
 
                   <span className="text-xs text-muted-foreground">

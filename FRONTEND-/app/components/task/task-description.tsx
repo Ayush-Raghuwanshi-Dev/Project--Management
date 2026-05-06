@@ -9,9 +9,11 @@ import { Textarea } from "../ui/textarea";
 export const TaskDescription = ({
   description,
   taskId,
+  isAdmin,
 }: {
   description: string;
   taskId: string;
+  isAdmin?: boolean;
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [newDescription, setNewDescription] = useState(description);
@@ -57,12 +59,12 @@ export const TaskDescription = ({
         >
           Save
         </Button>
-      ) : (
+      ) : isAdmin ? (
         <Edit
           className="size-3 cursor-pointer"
           onClick={() => setIsEditing(true)}
         />
-      )}
+      ) : null}
     </div>
   );
 };

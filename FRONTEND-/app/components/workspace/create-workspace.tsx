@@ -24,6 +24,13 @@ import { Textarea } from "../ui/textarea";
 import { useCreateWorkspace } from "@/hooks/use-workspace";
 import { toast } from "sonner";
 import { useNavigate } from "react-router";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 interface CreateWorkspaceProps {
   isCreatingWorkspace: boolean;
@@ -54,6 +61,7 @@ export const CreateWorkspace = ({
       name: "",
       color: colorOptions[0],
       description: "",
+      type: "dev",
     },
   });
   const navigate = useNavigate();
@@ -90,6 +98,33 @@ export const CreateWorkspace = ({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <div className="space-y-4 py-4">
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Workspace type</FormLabel>
+                    <FormControl>
+                      <Select value={field.value || "dev"} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="dev">Development</SelectItem>
+                          <SelectItem value="marketing">Marketing</SelectItem>
+                          <SelectItem value="design">Design</SelectItem>
+                          <SelectItem value="sales">Sales</SelectItem>
+                          <SelectItem value="hr">HR</SelectItem>
+                          <SelectItem value="operations">Operations</SelectItem>
+                          <SelectItem value="support">Support</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="name"

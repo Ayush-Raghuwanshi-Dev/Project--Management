@@ -51,6 +51,7 @@ const changePasswordSchema = z
 
 const profileSchema = z.object({
   name: z.string().min(1, { message: "Name is required" }),
+  fullName: z.string().optional(),
   profilePicture: z.string().optional(),
 });
 
@@ -78,10 +79,12 @@ const Profile = () => {
     resolver: zodResolver(profileSchema),
     defaultValues: {
       name: user?.name || "",
+      fullName: user?.fullName || "",
       profilePicture: user?.profilePicture || "",
     },
     values: {
       name: user?.name || "",
+      fullName: user?.fullName || "",
       profilePicture: user?.profilePicture || "",
     },
   });
@@ -118,7 +121,7 @@ const Profile = () => {
 
   const handleProfileFormSubmit = (values: ProfileFormData) => {
     updateUserProfile(
-      { name: values.name, profilePicture: values.profilePicture || "" },
+      { name: values.name, fullName: values.fullName || "", profilePicture: values.profilePicture || "" },
       {
         onSuccess: () => {
           toast.success("Profile updated successfully");
@@ -182,7 +185,20 @@ const Profile = () => {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Full Name</FormLabel>
+                    <FormLabel>Short Name / Display Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={profileForm.control}
+                name="fullName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full Legal Name</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>

@@ -1,5 +1,5 @@
 import type { CreateTaskFormData } from "@/components/task/create-task-dialog";
-import { fetchData, postData, updateData } from "@/lib/fetch-util";
+import { deleteData, fetchData, postData, updateData } from "@/lib/fetch-util";
 import type { TaskPriority, TaskStatus } from "@/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -211,9 +211,26 @@ export const useAchievedTaskMutation = () => {
   });
 };
 
-export const useGetMyTasksQuery = () => {
+export const useGetMyTasksQuery = (page: number = 1, limit: number = 20) => {
   return useQuery({
-    queryKey: ["my-tasks", "user"],
-    queryFn: () => fetchData("/tasks/my-tasks"),
+    queryKey: ["my-tasks", "user", page, limit],
+    queryFn: () => fetchData(`/tasks/my-tasks?page=${page}&limit=${limit}`),
+  });
+};
+
+export const useDeleteTaskMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { taskId: string; projectId: string }) =>
+      deleteData(`/tasks/${data.taskId}`),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["project", variables.projectId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["task"],
+      });
+    },
   });
 };

@@ -36,6 +36,8 @@ const inviteMemberSchema = z.object({
     .string()
     .min(1, "Message is required")
     .refine((value) => value.split(/\s+/).filter(Boolean).length <= 250, "Message must be under 250 words"),
+  pdfUrl: z.string().optional(),
+  imageUrl: z.string().optional(),
 });
 
 const tokenSchema = z.object({
@@ -46,6 +48,7 @@ const workspaceSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
   color: z.string().min(1, "Color is required"),
+  type: z.string().min(1).optional(),
 });
 
 const projectSchema = z.object({

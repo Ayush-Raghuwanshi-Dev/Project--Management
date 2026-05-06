@@ -4,6 +4,7 @@ import Comment from "../models/comment.js";
 import Project from "../models/project.js";
 import Task from "../models/task.js";
 import Workspace from "../models/workspace.js";
+import Notification from "../models/notification.js";
 
 const createTask = async (req, res) => {
   try {
@@ -102,6 +103,32 @@ const createTask = async (req, res) => {
       },
     });
 
+    await recordActivity(req.user._id, "created_task", "Task", newTask._id, {
+      description: `Created task "${title}"`,
+    }, project.workspace);
+
+    // notify assignees (excluding creator)
+    const uniqueAssignees = Array.from(new Set((assignees || []).map(String))).filter(
+      (id) => id !== req.user._id.toString()
+    );
+    if (uniqueAssignees.length) {
+      await Promise.all(
+        uniqueAssignees.map((recipient) =>
+          Notification.create({
+            recipient,
+            sender: req.user._id,
+            workspace: project.workspace,
+            type: "general",
+            status: "info",
+            message: `You have been assigned to task "${title}"`,
+          })
+        )
+      );
+      await recordActivity(req.user._id, "assigned_task", "Task", newTask._id, {
+        description: `Assigned task "${title}" to ${uniqueAssignees.length} user(s)`,
+      }, project.workspace);
+    }
+
     res.status(201).json(newTask);
   } catch (error) {
     console.log(error);
@@ -116,8 +143,8 @@ const getTaskById = async (req, res) => {
     const { taskId } = req.params;
 
     const task = await Task.findById(taskId)
-      .populate("assignees", "name profilePicture")
-      .populate("watchers", "name profilePicture");
+      .populate("assignees", "name username profilePicture")
+      .populate("watchers", "name username profilePicture");
 
     if (!task) {
       return res.status(404).json({
@@ -127,7 +154,7 @@ const getTaskById = async (req, res) => {
 
     const project = await Project.findById(task.project).populate(
       "members.user",
-      "name profilePicture"
+      "name username profilePicture"
     );
 
     res.status(200).json({ task, project });
@@ -263,14 +290,18 @@ const updateTaskStatus = async (req, res) => {
       });
     }
 
-    const isMember = project.members.some(
-      (member) => member.user.toString() === req.user._id.toString()
-    );
+    // Route-level RBAC ensures workspace membership (admin/member).
+    // Additional authorization: members can only update tasks inside projects they belong to.
+    if (req.memberRole !== "admin") {
+      const isProjectMember = project.members?.some(
+        (member) => member.user.toString() === req.user._id.toString()
+      );
 
-    if (!isMember) {
-      return res.status(403).json({
-        message: "You are not a member of this project",
-      });
+      if (!isProjectMember) {
+        return res.status(403).json({
+          message: "You are not a member of this project",
+        });
+      }
     }
 
     const oldStatus = task.status;
@@ -281,7 +312,7 @@ const updateTaskStatus = async (req, res) => {
     // record activity
     await recordActivity(req.user._id, "updated_task", "Task", taskId, {
       description: `updated task status from ${oldStatus} to ${status}`,
-    });
+    }, project.workspace);
 
     res.status(200).json(task);
   } catch (error) {
@@ -489,7 +520,7 @@ const getActivityByResourceId = async (req, res) => {
     const { resourceId } = req.params;
 
     const activity = await ActivityLog.find({ resourceId })
-      .populate("user", "name profilePicture")
+      .populate("user", "name username profilePicture")
       .sort({ createdAt: -1 });
 
     res.status(200).json(activity);
@@ -506,7 +537,7 @@ const getCommentsByTaskId = async (req, res) => {
     const { taskId } = req.params;
 
     const comments = await Comment.find({ task: taskId })
-      .populate("author", "name profilePicture")
+      .populate("author", "name username profilePicture")
       .sort({ createdAt: -1 });
 
     res.status(200).json(comments);
@@ -685,11 +716,78 @@ const achievedTask = async (req, res) => {
 
 const getMyTasks = async (req, res) => {
   try {
-    const tasks = await Task.find({ assignees: { $in: [req.user._id] } })
-      .populate("project", "title workspace")
-      .sort({ createdAt: -1 });
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
+    const skip = (page - 1) * limit;
 
-    res.status(200).json(tasks);
+    const [total, tasks] = await Promise.all([
+      Task.countDocuments({ assignees: { $in: [req.user._id] } }),
+      Task.find({ assignees: { $in: [req.user._id] } })
+        .populate("project", "title workspace")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+    ]);
+
+    res.status(200).json({
+      data: tasks,
+      pagination: {
+        total,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+        limit,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
+const deleteTask = async (req, res) => {
+  try {
+    const { taskId } = req.params;
+
+    const task = await Task.findById(taskId);
+
+    if (!task) {
+      return res.status(404).json({
+        message: "Task not found",
+      });
+    }
+
+    const project = await Project.findById(task.project);
+
+    if (!project) {
+      return res.status(404).json({
+        message: "Project not found",
+      });
+    }
+
+    // Strict RBAC enforced at route level: requireWorkspaceRole(["admin"])
+
+    await Task.findByIdAndDelete(taskId);
+
+    project.tasks = project.tasks.filter((t) => t.toString() !== taskId);
+    await project.save();
+
+    await Workspace.findByIdAndUpdate(project.workspace, {
+      $push: {
+        activityLog: {
+          message: `${req.user.name || req.user.username || "A user"} deleted task: "${task.title}"`,
+          userId: req.user._id,
+          timestamp: new Date(),
+        },
+      },
+    });
+
+    await recordActivity(req.user._id, "deleted_task", "Task", taskId, {
+      description: `Deleted task "${task.title}"`,
+    }, project.workspace);
+
+    res.status(200).json({ message: "Task deleted successfully" });
   } catch (error) {
     console.log(error);
     return res.status(500).json({
@@ -714,4 +812,5 @@ export {
   watchTask,
   achievedTask,
   getMyTasks,
+  deleteTask,
 };

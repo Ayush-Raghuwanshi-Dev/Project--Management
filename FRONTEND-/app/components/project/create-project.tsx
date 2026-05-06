@@ -285,8 +285,8 @@ export const CreateProjectDialog = ({
                                   (wm) => wm.user._id === m.user
                                 );
 
-                                return `${member?.user.name} (${member?.role})`;
-                              })
+                                return `@${member?.user?.username || "unknown"}`;
+                              }).join(", ")
                             ) : (
                               `${selectedMembers.length} members selected`
                             )}
@@ -297,7 +297,10 @@ export const CreateProjectDialog = ({
                           align="start"
                         >
                           <div className="flex flex-col gap-2">
-                            {workspaceMembers.map((member) => {
+                            {workspaceMembers
+                              .filter((m) => m.role !== "admin")
+                              .filter((m, i, self) => self.findIndex((t) => t.user._id === m.user._id) === i)
+                              .map((member) => {
                               const selectedMember = selectedMembers.find(
                                 (m) => m.user === member.user._id
                               );
@@ -328,8 +331,8 @@ export const CreateProjectDialog = ({
                                     }}
                                     id={`member-${member.user._id}`}
                                   />
-                                  <span className="truncate flex-1">
-                                    {member.user.name}
+                                  <span className="truncate flex-1 text-sm font-medium">
+                                    @{member.user.username}
                                   </span>
 
                                   {selectedMember && (

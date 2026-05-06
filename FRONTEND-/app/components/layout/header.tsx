@@ -165,7 +165,7 @@ export const Header = ({
           <Button variant="ghost" size="icon" className="relative" asChild>
             <Link to="/notifications">
               <Bell className="size-5" />
-              {!!notificationData?.unreadCount && <span className="absolute right-1 top-1 size-4 rounded-full bg-red-500 text-[10px] leading-4 text-white">{notificationData.unreadCount}</span>}
+              {!!notificationData?.unreadCount && <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">{notificationData.unreadCount > 9 ? "9+" : notificationData.unreadCount}</span>}
             </Link>
           </Button>
 

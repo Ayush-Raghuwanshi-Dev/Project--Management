@@ -328,6 +328,10 @@ export const CreateTaskDialog = ({
                   name="assignees"
                   render={({ field }) => {
                     const selectedMembers = field.value || [];
+                    // Deduplicate by user._id to prevent same user appearing twice
+                    const uniqueMembers = projectMembers.filter(
+                      (m, i, self) => self.findIndex((t) => t.user._id === m.user._id) === i
+                    );
 
                     return (
                       <FormItem>
@@ -343,13 +347,13 @@ export const CreateTaskDialog = ({
                                   <span className="text-muted-foreground">
                                     Select assignees
                                   </span>
-                                ) : selectedMembers.length <= 2 ? (
+                                ) : selectedMembers.length <= 3 ? (
                                   selectedMembers
                                     .map((m) => {
-                                      const member = projectMembers.find(
+                                      const member = uniqueMembers.find(
                                         (wm) => wm.user._id === m
                                       );
-                                      return `${member?.user.name}`;
+                                      return `@${member?.user?.username || "unknown"}`;
                                     })
                                     .join(", ")
                                 ) : (
@@ -363,7 +367,7 @@ export const CreateTaskDialog = ({
                               align="start"
                             >
                               <div className="flex flex-col gap-2">
-                                {projectMembers.map((member) => {
+                                {uniqueMembers.map((member) => {
                                   const selectedMember = selectedMembers.find(
                                     (m) => m === member.user?._id
                                   );
@@ -378,7 +382,6 @@ export const CreateTaskDialog = ({
                                           if (checked) {
                                             field.onChange([
                                               ...selectedMembers,
-
                                               member.user._id,
                                             ]);
                                           } else {
@@ -391,8 +394,8 @@ export const CreateTaskDialog = ({
                                         }}
                                         id={`member-${member.user._id}`}
                                       />
-                                      <span className="truncate flex-1">
-                                        {member.user.name}
+                                      <span className="truncate flex-1 text-sm font-medium">
+                                        @{member.user.username}
                                       </span>
                                     </div>
                                   );

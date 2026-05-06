@@ -28,6 +28,14 @@ const createProject = async (req, res) => {
 
     const tagArray = tags ? tags.split(",") : [];
 
+    // Always include the creator as a manager in project members
+    const creatorAlreadyInMembers = (members || []).some(
+      (m) => m.user === req.user._id.toString()
+    );
+    const projectMembers = creatorAlreadyInMembers
+      ? members || []
+      : [{ user: req.user._id, role: "manager" }, ...(members || [])];
+
     const newProject = await Project.create({
       title,
       description,
@@ -36,7 +44,7 @@ const createProject = async (req, res) => {
       dueDate,
       tags: tagArray,
       workspace: workspaceId,
-      members,
+      members: projectMembers,
       createdBy: req.user._id,
     });
 
@@ -56,7 +64,10 @@ const getProjectDetails = async (req, res) => {
   try {
     const { projectId } = req.params;
 
-    const project = await Project.findById(projectId);
+    const project = await Project.findById(projectId).populate(
+      "members.user",
+      "name username email profilePicture"
+    );
 
     if (!project) {
       return res.status(404).json({
@@ -64,11 +75,16 @@ const getProjectDetails = async (req, res) => {
       });
     }
 
+    // Allow workspace admin access even if not an explicit project member
     const isMember = project.members.some(
-      (member) => member.user.toString() === req.user._id.toString()
+      (member) => member.user._id.toString() === req.user._id.toString()
+    );
+    const workspace = await (await import("../models/workspace.js")).default.findById(project.workspace);
+    const isWorkspaceAdmin = workspace?.members.some(
+      (m) => m.user.toString() === req.user._id.toString() && m.role === "admin"
     );
 
-    if (!isMember) {
+    if (!isMember && !isWorkspaceAdmin) {
       return res.status(403).json({
         message: "You are not a member of this project",
       });
@@ -86,7 +102,7 @@ const getProjectDetails = async (req, res) => {
 const getProjectTasks = async (req, res) => {
   try {
     const { projectId } = req.params;
-    const project = await Project.findById(projectId).populate("members.user");
+    const project = await Project.findById(projectId).populate("members.user", "name username email profilePicture");
 
     if (!project) {
       return res.status(404).json({
@@ -97,23 +113,50 @@ const getProjectTasks = async (req, res) => {
     const isMember = project.members.some(
       (member) => member.user._id.toString() === req.user._id.toString()
     );
+    const wsModel = (await import("../models/workspace.js")).default;
+    const workspace = await wsModel.findById(project.workspace);
+    const isWorkspaceAdmin = workspace?.members.some(
+      (m) => m.user.toString() === req.user._id.toString() && m.role === "admin"
+    );
 
-    if (!isMember) {
+    if (!isMember && !isWorkspaceAdmin) {
       return res.status(403).json({
         message: "You are not a member of this project",
       });
     }
 
-    const tasks = await Task.find({
+    const { status, priority, assignee } = req.query;
+
+    const query = {
       project: projectId,
       isArchived: false,
-    })
-      .populate("assignees", "name profilePicture")
-      .sort({ createdAt: -1 });
+    };
+
+    if (status) query.status = status;
+    if (priority) query.priority = priority;
+    if (assignee) query.assignees = { $in: [assignee] };
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const totalTasks = await Task.countDocuments(query);
+
+    const tasks = await Task.find(query)
+      .populate("assignees", "name username profilePicture")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
     res.status(200).json({
       project,
       tasks,
+      pagination: {
+        totalTasks,
+        totalPages: Math.ceil(totalTasks / limit),
+        currentPage: page,
+        limit
+      }
     });
   } catch (error) {
     console.log(error);
